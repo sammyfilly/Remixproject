@@ -33,6 +33,7 @@ export const VerifyView: React.FC<Props> = ({
 }) => {
   const [results, setResults] = useState("")
   const [networkName, setNetworkName] = useState("Loading...")
+  const [selectedContract, setSelectedContract] = useState("")
   const [showConstructorArgs, setShowConstructorArgs] = useState(false)
   const [isProxyContract, setIsProxyContract] = useState(false)
   const [constructorInputs, setConstructorInputs] = useState([])
@@ -49,6 +50,23 @@ export const VerifyView: React.FC<Props> = ({
       if (client && client.off) client.off("blockchain" as any, 'networkStatus')
     }
   }, [client])
+
+  useEffect(() => {
+    if (contracts.includes(selectedContract)) updateConsFields(selectedContract)
+  }, [contracts])
+
+  const updateConsFields = (contractName) => {
+    client.call("compilerArtefacts" as any, "getArtefactsByContractName", contractName).then((result) => {
+      const { artefact } = result
+      if (artefact && artefact.abi && artefact.abi[0] && artefact.abi[0].type && artefact.abi[0].type === 'constructor' && artefact.abi[0].inputs.length > 0) {
+        setConstructorInputs(artefact.abi[0].inputs)
+        setShowConstructorArgs(true)
+      } else {
+        setConstructorInputs([])
+        setShowConstructorArgs(false)
+      }
+    })
+  }
 
   const onVerifyContract = async (values: FormValues) => {
     const compilationResult = (await client.call(
@@ -139,14 +157,8 @@ export const VerifyView: React.FC<Props> = ({
                 name="contractName"
                 onChange={async (e) => {
                   handleChange(e)
-                  const {artefact} = await client.call("compilerArtefacts" as any, "getArtefactsByContractName", e.target.value)
-                  if (artefact && artefact.abi && artefact.abi[0] && artefact.abi[0].type && artefact.abi[0].type === 'constructor' && artefact.abi[0].inputs.length > 0) {
-                    setConstructorInputs(artefact.abi[0].inputs)
-                    setShowConstructorArgs(true)
-                  } else {
-                    setConstructorInputs([])
-                    setShowConstructorArgs(false)
-                  }
+                  setSelectedContract(e.target.value)
+                  updateConsFields(e.target.value)
                 }}
               >
                 <option disabled={true} value="">

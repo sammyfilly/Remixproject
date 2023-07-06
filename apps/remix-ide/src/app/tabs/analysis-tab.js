@@ -14,7 +14,7 @@ const profile = {
   methods: [],
   events: [],
   icon: 'assets/img/staticAnalysis.webp',
-  description: 'Checks the contract code for security vulnerabilities and bad practices.',
+  description: 'Analyze your code using Remix, Solhint and Slither.',
   kind: 'analysis',
   location: 'sidePanel',
   documentation: 'https://remix-ide.readthedocs.io/en/latest/static_analysis.html',
@@ -37,6 +37,7 @@ class AnalysisTab extends ViewPlugin {
         'offsettolinecolumnconverter').api
     }
     this.dispatch = null
+    this.hints = []
   }
 
   async onActivation () {
@@ -47,10 +48,19 @@ class AnalysisTab extends ViewPlugin {
     }
 
     this.event.register('staticAnaysisWarning', (count) => {
+      let payloadType = ''
+      const error = this.hints.find(hint => hint.type === 'error')
+      const warning = this.hints.find(hints => hints.type === 'warning')
+      if (error) {
+        payloadType = 'error'
+      } else {
+        payloadType = 'warning'
+      }
+
       if (count > 0) {
-        this.emit('statusChanged', { key: count, title: `${count} warning${count === 1 ? '' : 's'}`, type: 'warning' })
+        this.emit('statusChanged', { key: count, title: payloadType === 'error' ? `You have some problem${count === 1 ? '' : 's'}` : 'You have some warnings', type: payloadType })
       } else if (count === 0) {
-        this.emit('statusChanged', { key: 'succeed', title: 'no warning', type: 'success' })
+        this.emit('statusChanged', { key: 'succeed', title: 'no warnings or errors', type: 'success' })
       } else {
         // count ==-1 no compilation result
         this.emit('statusChanged', { key: 'none' })
